@@ -68,3 +68,25 @@ test('invalid seed is rejected', async () => {
   const result = await request('/server/create?name=Bad&seed=not-a-number');
   assert.equal(result.status, 400);
 });
+
+test('observed path-shaped rename and whitelist routes are accepted as prototype aliases', async () => {
+  const created = await request('/server/create?name=Before');
+  assert.equal(created.status, 201);
+  const id = created.body.server.id;
+
+  const renamed = await request('/server/' + id + '/name/After%20Name');
+  assert.equal(renamed.status, 200);
+  assert.equal(renamed.body.server.name, 'After Name');
+
+  const added = await request('/server/' + id + '/whitelist/Tester');
+  assert.equal(added.status, 200);
+  assert.deepEqual(added.body.whitelist, ['Tester']);
+});
+
+test('corrupt store fails closed and is not silently replaced', () => {
+  const storePath = path.join(dataDir, 'store.json');
+  const original = '{not valid json';
+  fs.writeFileSync(storePath, original);
+  assert.throws(() => require('../src/server.js').loadStore(), /Could not read data store/);
+  assert.equal(fs.readFileSync(storePath, 'utf8'), original);
+});
