@@ -151,10 +151,11 @@ function route(req, res) {
     }).catch(error => send(res, error.status || 500, { error: error.message || 'Internal server error' }));
   }
 
-  const serverRoute = pathname.match(/^\/server\/(\d+)(?:\/(join|open|close|name|whitelist))?$/);
+  const serverRoute = pathname.match(/^\/server\/(\d+)(?:\/(join|open|close|name|whitelist)(?:\/([^/]+))?)?$/);
   if (serverRoute) {
     const id = Number(serverRoute[1]);
     const action = serverRoute[2] || '';
+    const actionValue = serverRoute[3] ? safeText(serverRoute[3], action === 'name' ? 'name' : 'player', action === 'name' ? 48 : 32) : null;
     if (method === 'GET' && !action) return send(res, 200, { server: publicServer(findServer(id)) });
     if (method === 'GET' && action === 'open') {
       const server = findServer(id); server.open = true; server.updatedAt = new Date().toISOString(); persist();
