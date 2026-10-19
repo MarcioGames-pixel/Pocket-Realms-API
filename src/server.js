@@ -26,10 +26,9 @@ function loadStore() {
       players: parsed.players && typeof parsed.players === 'object' ? parsed.players : {}
     };
   } catch (error) {
-    if (error.code !== 'ENOENT') {
-      console.error('Could not read database; starting with empty data:', error.message);
-    }
-    return emptyStore();
+    if (error.code === 'ENOENT') return emptyStore();
+    // Fail closed: never let a later request overwrite an unreadable/corrupt store.
+    throw new Error('Could not read data store at ' + DATA_FILE + ': ' + error.message + '. Back up and repair the file before restarting.');
   }
 }
 
@@ -55,15 +54,20 @@ function send(res, status, payload) {
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let body = '';
+    let settled = false;
     req.setEncoding('utf8');
     req.on('data', chunk => {
+      if (settled) return;
       body += chunk;
       if (Buffer.byteLength(body) > MAX_BODY) {
+        settled = true;
         reject(Object.assign(new Error('Request body too large'), { status: 413 }));
-        req.destroy();
+        // Drain the request so the handler can return a structured 413 response.
+        req.resume();
       }
     });
     req.on('end', () => {
+      if (settled) return;
       if (!body) return resolve({});
       try {
         const parsed = JSON.parse(body);
@@ -75,7 +79,9 @@ function readBody(req) {
         reject(Object.assign(new Error('Invalid JSON body'), { status: 400 }));
       }
     });
-    req.on('error', reject);
+    req.on('error', error => {
+      if (!settled) reject(error);
+    });
   });
 }
 
@@ -161,7 +167,7 @@ function route(req, res) {
     if (action === 'name' && (method === 'GET' || method === 'POST')) {
       return readBody(req).then(body => {
         const server = findServer(id);
-        const name = safeText(url.searchParams.get('name') || body.name, 'name', 48);
+        const name = safeText(actionValue || url.searchParams.get('name') || body.name, 'name', 48);
         server.name = name; server.updatedAt = new Date().toISOString(); persist();
         return send(res, 200, { server: publicServer(server) });
       }).catch(error => send(res, error.status || 500, { error: error.message || 'Internal server error' }));
@@ -169,7 +175,7 @@ function route(req, res) {
     if (action === 'whitelist' && (method === 'GET' || method === 'POST')) {
       return readBody(req).then(body => {
         const server = findServer(id);
-        const player = safeText(url.searchParams.get('player') || body.player || body.username, 'player', 32);
+        const player = safeText(actionValue || url.searchParams.get('player') || body.player || body.username, 'player', 32);
         if (method === 'GET' || body.action === 'add') {
           if (!server.whitelist.includes(player)) server.whitelist.push(player);
         } else if (body.action === 'remove') {
