@@ -190,8 +190,9 @@ function route(req, res) {
         store.players[username] = store.players[username] || { username, firstSeen: new Date().toISOString() };
         server.nplayers = Math.max(0, server.nplayers + 1);
         server.updatedAt = new Date().toISOString();
+        const sessionId = tokenFor(username);
         persist();
-        return send(res, 200, { joined: true, server: publicServer(server), sessionId: tokenFor(username), note: 'Metadata only; no RakNet game connection is created.' });
+        return send(res, 200, { joined: true, server: publicServer(server), sessionId, note: 'Metadata only; no RakNet game connection is created.' });
       }).catch(error => send(res, error.status || 500, { error: error.message || 'Internal server error' }));
     }
   }
