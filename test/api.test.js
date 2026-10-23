@@ -107,3 +107,22 @@ test('serves the HTML dashboard and its static assets', async () => {
   assert.equal(style.status, 200);
   assert.match(style.headers.get('content-type'), /text\/css/);
 });
+
+
+test('supports observed PUT rename and POST/DELETE invite path shapes', async () => {
+  const created = await request('/server/create?name=Before');
+  assert.equal(created.status, 201);
+  const id = created.body.server.id;
+
+  const renamed = await request('/server/' + id + '/name/Native%20Shape', { method: 'PUT' });
+  assert.equal(renamed.status, 200);
+  assert.equal(renamed.body.server.name, 'Native Shape');
+
+  const added = await request('/server/' + id + '/whitelist/Tester', { method: 'POST' });
+  assert.equal(added.status, 200);
+  assert.deepEqual(added.body.whitelist, ['Tester']);
+
+  const removed = await request('/server/' + id + '/whitelist/Tester', { method: 'DELETE' });
+  assert.equal(removed.status, 200);
+  assert.deepEqual(removed.body.whitelist, []);
+});
