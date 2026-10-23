@@ -189,7 +189,7 @@ function route(req, res) {
       const server = findServer(id); server.open = false; server.updatedAt = new Date().toISOString(); persist();
       return send(res, 200, { server: publicServer(server) });
     }
-    if (action === 'name' && (method === 'GET' || method === 'POST')) {
+    if (action === 'name' && ['PUT', 'POST', 'GET'].includes(method)) {
       return readBody(req).then(body => {
         const server = findServer(id);
         const name = safeText(actionValue || url.searchParams.get('name') || body.name, 'name', 48);
@@ -197,16 +197,17 @@ function route(req, res) {
         return send(res, 200, { server: publicServer(server) });
       }).catch(error => send(res, error.status || 500, { error: error.message || 'Internal server error' }));
     }
-    if (action === 'whitelist' && (method === 'GET' || method === 'POST')) {
+    if (action === 'whitelist' && ['POST', 'DELETE', 'GET'].includes(method)) {
       return readBody(req).then(body => {
         const server = findServer(id);
         const player = safeText(actionValue || url.searchParams.get('player') || body.player || body.username, 'player', 32);
-        if (method === 'GET' || body.action === 'add') {
-          if (!server.whitelist.includes(player)) server.whitelist.push(player);
-        } else if (body.action === 'remove') {
+        const remove = method === 'DELETE' || body.action === 'remove';
+        if (remove) {
           server.whitelist = server.whitelist.filter(name => name !== player);
+        } else if (method === 'POST' || method === 'GET') {
+          if (!server.whitelist.includes(player)) server.whitelist.push(player);
         } else {
-          throw Object.assign(new Error('POST body action must be add or remove'), { status: 400 });
+          throw Object.assign(new Error('Use POST to add or DELETE to remove a player'), { status: 405 });
         }
         server.updatedAt = new Date().toISOString(); persist();
         return send(res, 200, { whitelist: server.whitelist });
