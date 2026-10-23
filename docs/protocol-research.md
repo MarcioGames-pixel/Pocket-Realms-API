@@ -52,8 +52,9 @@ For each connector method, record:
 | Session | `/m/session` | No |
 | Validate player | `/auth/validate-player/%s/%s` | No |
 | Create | `/server/create?name=%s&type=%s&seed=%d` | No |
-| Rename | `/server/%lld/name/%s` | No |
-| Whitelist | `/server/%lld/whitelist/%s` | No |
+| Rename | `/server/%lld/name/%s` | PUT inferred from call-site; response schema unverified |
+| Add invite | `/server/%lld/whitelist/%s` | POST inferred from call-site; response schema unverified |
+| Remove invite | `/server/%lld/whitelist/%s` | DELETE inferred from call-site; response schema unverified |
 
 ## Next milestones
 
@@ -64,3 +65,8 @@ For each connector method, record:
 - Build a separate RakNet-compatible game-server component. REST metadata alone cannot host a playable world.
 
 Never store real Microsoft/Mojang credentials or refresh tokens in this project.
+
+
+## Implemented route-shape update (prototype)
+
+The API now accepts `PUT /server/:id/name/:name`, `POST /server/:id/whitelist/:player` and `DELETE /server/:id/whitelist/:player`, matching the method/path shapes recovered from the native call sites. Legacy GET aliases remain for development compatibility. This confirms route handling only; original response JSON, headers, session rules, invite semantics and account authentication remain unverified. The HTML login is a local demo session, not official authentication.

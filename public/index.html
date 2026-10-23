@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17251f">
+  <title>Pocket Realms — Painel</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Pocket Realms início"><span class="brand-mark">PR</span><span>Pocket Realms<small>API community prototype</small></span></a>
+    <span class="status-pill"><i></i> Protótipo local</span>
+  </header>
+  <main>
+    <section id="login-panel" class="panel login-panel">
+      <div class="eyebrow">MINECRAFT PE 0.7.0 · PESQUISA</div>
+      <h1>Entre no painel</h1>
+      <p class="muted">Crie uma sessão de demonstração local para consultar e administrar os registros de Realms desta API.</p>
+      <form id="login-form">
+        <label for="username">Nome de jogador</label>
+        <input id="username" name="username" autocomplete="nickname" maxlength="32" required placeholder="Ex.: Steve">
+        <button class="primary" type="submit">Criar sessão local</button>
+      </form>
+      <p class="fineprint">Não use senha, senha Microsoft ou token real. Este login é apenas uma sessão de demonstração; não autentica na Mojang/Microsoft.</p>
+      <p id="login-error" class="error" role="alert"></p>
+    </section>
+
+    <section id="dashboard" hidden>
+      <div class="welcome-row">
+        <div><div class="eyebrow">PAINEL DE CONTROLE</div><h1>Seus servidores</h1><p id="welcome" class="muted"></p></div>
+        <button id="logout-button" class="secondary" type="button">Sair</button>
+      </div>
+      <div class="stats">
+        <article class="stat-card"><span>API</span><strong id="api-status">Verificando…</strong></article>
+        <article class="stat-card"><span>Registros</span><strong id="server-count">—</strong></article>
+        <article class="stat-card"><span>Abertos</span><strong id="open-count">—</strong></article>
+      </div>
+      <section class="panel create-panel">
+        <h2>Novo Realm (registro)</h2>
+        <form id="create-form" class="create-form">
+          <div><label for="realm-name">Nome</label><input id="realm-name" maxlength="48" required placeholder="Meu Realm"></div>
+          <div><label for="realm-type">Tipo</label><select id="realm-type"><option value="survival">Survival</option><option value="creative">Creative</option><option value="adventure">Adventure</option></select></div>
+          <div><label for="realm-seed">Seed</label><input id="realm-seed" type="number" step="1" value="0"></div>
+          <button class="primary" type="submit">Criar registro</button>
+        </form>
+        <p class="fineprint">Isso cria metadados na API; não inicia um mundo Minecraft nem um servidor RakNet.</p>
+      </section>
+      <div class="list-heading"><h2>Lista de Realms</h2><button id="refresh-button" class="secondary" type="button">Atualizar</button></div>
+      <p id="dashboard-message" class="notice" role="status"></p>
+      <div id="server-list" class="server-list"></div>
+    </section>
+    <footer>Projeto comunitário independente. Não afiliado à Mojang ou Microsoft.</footer>
+  </main>
+</body>
+</html>

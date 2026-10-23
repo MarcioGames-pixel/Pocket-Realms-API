@@ -124,6 +124,30 @@ function route(req, res) {
   const pathname = decodeURIComponent(url.pathname);
   const method = req.method || 'GET';
 
+  if (method === 'GET' && (pathname === '/' || pathname === '/index.html' || pathname === '/app.js' || pathname === '/style.css')) {
+    const assets = {
+      '/': ['index.html', 'text/html; charset=utf-8'],
+      '/index.html': ['index.html', 'text/html; charset=utf-8'],
+      '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
+      '/style.css': ['style.css', 'text/css; charset=utf-8']
+    };
+    const [file, contentType] = assets[pathname];
+    const filePath = path.join(__dirname, '..', 'public', file);
+    try {
+      const body = fs.readFileSync(filePath);
+      res.writeHead(200, {
+        'content-type': contentType,
+        'content-length': body.length,
+        'cache-control': 'no-cache',
+        'x-content-type-options': 'nosniff',
+        'content-security-policy': "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; base-uri 'none'; frame-ancestors 'none'"
+      });
+      return res.end(body);
+    } catch {
+      return send(res, 500, { error: 'Web interface asset is missing' });
+    }
+  }
+
   if (method === 'GET' && pathname === '/health') {
     return send(res, 200, { ok: true, service: 'Pocket-Realms-API', version: '0.1.0' });
   }
@@ -165,7 +189,7 @@ function route(req, res) {
       const server = findServer(id); server.open = false; server.updatedAt = new Date().toISOString(); persist();
       return send(res, 200, { server: publicServer(server) });
     }
-    if (action === 'name' && (method === 'GET' || method === 'POST')) {
+    if (action === 'name' && ['PUT', 'POST', 'GET'].includes(method)) {
       return readBody(req).then(body => {
         const server = findServer(id);
         const name = safeText(actionValue || url.searchParams.get('name') || body.name, 'name', 48);
@@ -173,16 +197,17 @@ function route(req, res) {
         return send(res, 200, { server: publicServer(server) });
       }).catch(error => send(res, error.status || 500, { error: error.message || 'Internal server error' }));
     }
-    if (action === 'whitelist' && (method === 'GET' || method === 'POST')) {
+    if (action === 'whitelist' && ['POST', 'DELETE', 'GET'].includes(method)) {
       return readBody(req).then(body => {
         const server = findServer(id);
         const player = safeText(actionValue || url.searchParams.get('player') || body.player || body.username, 'player', 32);
-        if (method === 'GET' || body.action === 'add') {
-          if (!server.whitelist.includes(player)) server.whitelist.push(player);
-        } else if (body.action === 'remove') {
+        const remove = method === 'DELETE' || body.action === 'remove';
+        if (remove) {
           server.whitelist = server.whitelist.filter(name => name !== player);
+        } else if (method === 'POST' || method === 'GET') {
+          if (!server.whitelist.includes(player)) server.whitelist.push(player);
         } else {
-          throw Object.assign(new Error('POST body action must be add or remove'), { status: 400 });
+          throw Object.assign(new Error('Use POST to add or DELETE to remove a player'), { status: 405 });
         }
         server.updatedAt = new Date().toISOString(); persist();
         return send(res, 200, { whitelist: server.whitelist });
