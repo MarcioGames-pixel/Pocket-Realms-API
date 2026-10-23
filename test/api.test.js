@@ -90,3 +90,20 @@ test('corrupt store fails closed and is not silently replaced', () => {
   assert.throws(() => require('../src/server.js').loadStore(), /Could not read data store/);
   assert.equal(fs.readFileSync(storePath, 'utf8'), original);
 });
+
+
+test('serves the HTML dashboard and its static assets', async () => {
+  const page = await fetch(base + '/');
+  assert.equal(page.status, 200);
+  assert.match(page.headers.get('content-type'), /text\/html/);
+  assert.match(await page.text(), /Entre no painel/);
+
+  const script = await fetch(base + '/app.js');
+  assert.equal(script.status, 200);
+  assert.match(script.headers.get('content-type'), /javascript/);
+  assert.match(await script.text(), /function signIn/);
+
+  const style = await fetch(base + '/style.css');
+  assert.equal(style.status, 200);
+  assert.match(style.headers.get('content-type'), /text\/css/);
+});
