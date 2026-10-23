@@ -124,6 +124,30 @@ function route(req, res) {
   const pathname = decodeURIComponent(url.pathname);
   const method = req.method || 'GET';
 
+  if (method === 'GET' && (pathname === '/' || pathname === '/index.html' || pathname === '/app.js' || pathname === '/style.css')) {
+    const assets = {
+      '/': ['index.html', 'text/html; charset=utf-8'],
+      '/index.html': ['index.html', 'text/html; charset=utf-8'],
+      '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
+      '/style.css': ['style.css', 'text/css; charset=utf-8']
+    };
+    const [file, contentType] = assets[pathname];
+    const filePath = path.join(__dirname, '..', 'public', file);
+    try {
+      const body = fs.readFileSync(filePath);
+      res.writeHead(200, {
+        'content-type': contentType,
+        'content-length': body.length,
+        'cache-control': 'no-cache',
+        'x-content-type-options': 'nosniff',
+        'content-security-policy': "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; base-uri 'none'; frame-ancestors 'none'"
+      });
+      return res.end(body);
+    } catch {
+      return send(res, 500, { error: 'Web interface asset is missing' });
+    }
+  }
+
   if (method === 'GET' && pathname === '/health') {
     return send(res, 200, { ok: true, service: 'Pocket-Realms-API', version: '0.1.0' });
   }
